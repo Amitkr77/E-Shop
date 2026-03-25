@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petal Cork Journal | KOKORO</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        :root {
+            --zen-ink: #1A1C1B;
+            --zen-paper: #F9F8F4;
+            --zen-moss: #4A5D4E;
+            --zen-stone: #E2E2DF;
+            --zen-sand: #D4CDC3;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--zen-paper);
+            color: var(--zen-ink);
+            cursor: none;
+            overflow-x: hidden;
+        }
+
+        /* Custom Grainy Texture */
+        .grain-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Custom Cursor */
+        .zen-cursor {
+            width: 20px; height: 20px;
+            border: 1px solid var(--zen-ink);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            transition: transform 0.15s ease-out;
+        }
+
+        .zen-cursor-follower {
+            width: 8px; height: 8px;
+            background: var(--zen-moss);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Animations */
+        @keyframes subtle-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float { animation: subtle-float 5s ease-in-out infinite; }
+
+        .vertical-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+
+        /* Image Mask Reveal */
+        .mask-reveal {
+            clip-path: inset(0 100% 0 0);
+            transition: clip-path 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+        .mask-reveal.active { clip-path: inset(0 0 0 0); }
+
+        [x-cloak] { display: none !important; }
+
+        /* Custom selection */
+        ::selection {
+            background: var(--zen-moss);
+            color: white;
+        }
+    </style>
+</head>
+<body x-data="{ 
+    cartOpen: false, 
+    cartCount: 0,
+    activeImg: 0,
+    mouseX: 0, mouseY: 0,
+    images: [
+        'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=90',
+        'https://images.unsplash.com/photo-1595303233150-f8d839e55998?auto=format&fit=crop&w=1200&q=90',
+        'https://images.unsplash.com/photo-1531346878377-a5be20888e57?auto=format&fit=crop&w=1200&q=90'
+    ]
+}" @mousemove="mouseX = $event.clientX; mouseY = $event.clientY" class="flex flex-col min-h-screen">
+
+    <!-- Texture Overlay -->
+    <div class="grain-overlay"></div>
+
+    <!-- Custom Cursor -->
+    <div class="zen-cursor hidden md:block" :style="`transform: translate(${mouseX - 10}px, ${mouseY - 10}px)`"></div>
+    <div class="zen-cursor-follower hidden md:block" :style="`transform: translate(${mouseX - 4}px, ${mouseY - 4}px)`"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 px-8 py-6 flex justify-between items-center mix-blend-difference text-white">
+        <div class="flex items-center gap-12">
+            <a href="#" class="text-2xl font-bold tracking-widest uppercase">Kokoro</a>
+            <div class="hidden md:flex gap-8 text-sm uppercase tracking-widest font-medium">
+                <a href="#" class="hover:opacity-50 transition-opacity">Collection</a>
+                <a href="#" class="hover:opacity-50 transition-opacity">Ethics</a>
+                <a href="#" class="hover:opacity-50 transition-opacity">Origin</a>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <button @click="cartOpen = true" class="relative p-2 group">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                <span x-show="cartCount > 0" x-text="cartCount" class="absolute -top-1 -right-1 bg-moss text-[10px] w-4 h-4 rounded-full flex items-center justify-center text-white" style="background: var(--zen-moss)"></span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-grow pt-32 pb-24">
+        <!-- Breadcrumb / Meta -->
+        <div class="px-8 md:px-24 mb-12 flex justify-between items-end">
+            <div class="text-[10px] uppercase tracking-[0.4em] text-zinc-400">
+                <a href="#" class="hover:text-zinc-900">Collection</a> / <span class="text-zinc-900">Cork Journal</span>
+            </div>
+            <div class="hidden md:block vertical-text text-[10px] uppercase tracking-[0.5em] text-zinc-300 font-bold">
+                Natural Heritage 04
+            </div>
+        </div>
+
+        <!-- Product Hero Grid -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-16 px-8 md:px-24">
+            
+            <!-- Gallery (Column 1-7) -->
+            <div class="lg:col-span-7 space-y-8">
+                <div class="relative aspect-[4/5] overflow-hidden bg-zinc-100 rounded-sm">
+                    <template x-for="(img, index) in images" :key="index">
+                        <img x-show="activeImg === index" 
+                             x-transition:enter="transition duration-1000 ease-in-out"
+                             x-transition:enter-start="opacity-0 scale-105"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             :src="img" 
+                             class="absolute inset-0 w-full h-full object-cover">
+                    </template>
+                    
+                    <!-- Floating Badge -->
+                    <div class="absolute top-8 left-8 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
+                        <span class="text-[9px] uppercase tracking-widest font-bold text-zinc-500">Hand-Harvested Bark</span>
+                    </div>
+                </div>
+                
+                <!-- Thumbnails -->
+                <div class="flex gap-4">
+                    <template x-for="(img, index) in images" :key="index">
+                        <button @click="activeImg = index" 
+                                :class="activeImg === index ? 'ring-1 ring-zinc-900 ring-offset-4' : 'opacity-40 hover:opacity-100'"
+                                class="w-24 h-24 overflow-hidden rounded-sm transition-all duration-500">
+                            <img :src="img" class="w-full h-full object-cover">
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Details (Column 8-12) -->
+            <div class="lg:col-span-5 flex flex-col">
+                <div class="mb-12">
+                    <h1 class="text-5xl md:text-7xl font-light tracking-tighter leading-tight mb-4">
+                        Petal <br>
+                        <span class="italic font-serif">Cork Diary</span>
+                    </h1>
+                    <div class="flex items-center gap-4 text-2xl font-light text-zinc-500">
+                        <span>$32.00</span>
+                        <span class="w-8 h-[1px] bg-zinc-200"></span>
+                        <span class="text-xs uppercase tracking-widest text-zinc-400">Tax Included</span>
+                    </div>
+                </div>
+
+                <p class="text-zinc-600 leading-relaxed mb-12 max-w-md">
+                    Bound in premium Portuguese cork, our Petal diary offers a tactile connection to the earth. 160 pages of recycled, acid-free ivory paper await your meditations.
+                </p>
+
+                <!-- Selection -->
+                <div class="space-y-8 mb-16">
+                    <div>
+                        <span class="block text-[10px] uppercase tracking-[0.2em] text-zinc-400 mb-4">Size</span>
+                        <div class="flex gap-3">
+                            <button class="px-6 py-2 border border-zinc-900 rounded-full text-xs uppercase tracking-widest bg-zinc-900 text-white">A5 Pocket</button>
+                            <button class="px-6 py-2 border border-zinc-200 rounded-full text-xs uppercase tracking-widest hover:border-zinc-400 transition-colors">Master A4</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action -->
+                <div class="flex items-center gap-6 mt-auto">
+                    <button @click="cartCount++; cartOpen = true" 
+                            class="flex-grow bg-zinc-900 text-white py-6 rounded-full text-xs uppercase tracking-[0.3em] font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 shadow-2xl">
+                        Add to Vessel
+                    </button>
+                    <button class="w-16 h-16 border border-zinc-200 rounded-full flex items-center justify-center hover:bg-zinc-50 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Meta Specs -->
+                <div class="mt-12 pt-8 border-t border-zinc-100 grid grid-cols-2 gap-8">
+                    <div>
+                        <span class="block text-[10px] uppercase tracking-widest text-zinc-400 mb-2">Weight</span>
+                        <span class="text-sm font-medium">320g — Zero Gravity feel</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] uppercase tracking-widest text-zinc-400 mb-2">Carbon</span>
+                        <span class="text-sm font-medium">-1.2kg (Carbon Negative)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Eco Impact Metrics Section -->
+        <section class="py-32 px-8 md:px-24 mt-24 bg-white/50 backdrop-blur-sm rounded-[4rem]">
+            <div class="flex flex-col md:flex-row gap-16 items-center">
+                <div class="w-full md:w-1/2">
+                    <h2 class="text-4xl font-light mb-8">Eco-Impact <span class="italic font-serif">Equilibrium</span></h2>
+                    <div class="space-y-10">
+                        <!-- Metric 1 -->
+                        <div>
+                            <div class="flex justify-between text-xs uppercase tracking-widest mb-3">
+                                <span>Regenerative Sourcing</span>
+                                <span>98%</span>
+                            </div>
+                            <div class="h-[2px] w-full bg-zinc-100 relative">
+                                <div class="absolute h-full bg-zinc-900" style="width: 98%"></div>
+                            </div>
+                        </div>
+                        <!-- Metric 2 -->
+                        <div>
+                            <div class="flex justify-between text-xs uppercase tracking-widest mb-3">
+                                <span>Water Preservation</span>
+                                <span>82% Saved</span>
+                            </div>
+                            <div class="h-[2px] w-full bg-zinc-100 relative">
+                                <div class="absolute h-full bg-moss" style="width: 82%; background: var(--zen-moss)"></div>
+                            </div>
+                        </div>
+                        <!-- Metric 3 -->
+                        <div>
+                            <div class="flex justify-between text-xs uppercase tracking-widest mb-3">
+                                <span>Biodegradability</span>
+                                <span>100% Compostable</span>
+                            </div>
+                            <div class="h-[2px] w-full bg-zinc-100 relative">
+                                <div class="absolute h-full bg-zinc-400" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Certificates Bento -->
+                <div class="w-full md:w-1/2 grid grid-cols-2 gap-4">
+                    <div class="bg-zinc-100 p-8 rounded-2xl flex flex-col items-center text-center group hover:bg-zinc-900 hover:text-white transition-all duration-500">
+                        <div class="w-12 h-12 mb-4 border border-zinc-300 rounded-full flex items-center justify-center text-xs">FSC</div>
+                        <span class="text-[10px] uppercase tracking-widest font-bold">Forest Stewardship</span>
+                    </div>
+                    <div class="bg-zinc-100 p-8 rounded-2xl flex flex-col items-center text-center group hover:bg-zinc-900 hover:text-white transition-all duration-500">
+                        <div class="w-12 h-12 mb-4 border border-zinc-300 rounded-full flex items-center justify-center text-xs">VGN</div>
+                        <span class="text-[10px] uppercase tracking-widest font-bold">PETA Vegan Certified</span>
+                    </div>
+                    <div class="col-span-2 bg-stone/30 p-8 rounded-2xl flex items-center justify-between group hover:bg-zinc-900 hover:text-white transition-all duration-500" style="background-color: var(--zen-stone)">
+                        <div class="text-left">
+                            <span class="block text-[10px] uppercase tracking-widest font-bold mb-1">Carbon Neutral</span>
+                            <p class="text-xs opacity-60">Verified supply chain transparency</p>
+                        </div>
+                        <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke-width="1"/><path d="M7 12.5L10 15.5L17 8.5" stroke-width="1"/></svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Material Origin Story -->
+        <section class="py-32 px-8 md:px-24">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1595303233150-f8d839e55998?auto=format&fit=crop&w=1000&q=80" 
+                         class="w-full aspect-[3/4] object-cover rounded-sm grayscale hover:grayscale-0 transition-all duration-1000 shadow-2xl" 
+                         alt="Cork Harvest">
+                    <div class="absolute -bottom-10 -right-10 w-48 h-48 bg-moss rounded-full mix-blend-multiply opacity-20 animate-float" style="background: var(--zen-moss)"></div>
+                </div>
+                <div>
+                    <span class="text-xs uppercase tracking-[0.4em] text-zinc-400 mb-6 block">Origin — Alentejo</span>
+                    <h2 class="text-5xl font-light mb-8 leading-tight">The Skin of <br><span class="italic font-serif">the Oak Tree</span></h2>
+                    <p class="text-zinc-600 leading-relaxed text-lg mb-8">
+                        Cork is the outer bark of the Cork Oak tree (*Quercus suber*). It is harvested every nine years by skilled artisans using traditional hand-axes, a process that doesn't harm the tree. In fact, harvested trees absorb 3-5 times more CO2 than unharvested ones.
+                    </p>
+                    <div class="flex items-center gap-6">
+                        <div class="w-12 h-12 rounded-full border border-zinc-200 flex items-center justify-center">01</div>
+                        <p class="text-sm font-medium">Sustainable Harvesting Technique</p>
+                    </div>
+                    <div class="flex items-center gap-6 mt-4">
+                        <div class="w-12 h-12 rounded-full border border-zinc-200 flex items-center justify-center">02</div>
+                        <p class="text-sm font-medium">Naturally Antimicrobial Surface</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Cart Drawer (KOKORO Standard) -->
+    <div x-show="cartOpen" class="fixed inset-0 z-[100]" x-cloak>
+        <div @click="cartOpen = false" class="absolute inset-0 bg-black/40 backdrop-blur-md"></div>
+        <div x-transition:enter="transition ease-out duration-500"
+             x-transition:enter-start="translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="transition ease-in duration-400"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="translate-x-full"
+             class="absolute right-0 top-0 h-full w-full max-w-md bg-white p-12 flex flex-col">
+            <div class="flex justify-between items-center mb-12">
+                <h3 class="text-2xl font-light uppercase tracking-widest">Your Vessel</h3>
+                <button @click="cartOpen = false" class="text-xs uppercase tracking-widest opacity-50 hover:opacity-100">Close</button>
+            </div>
+            
+            <div class="flex-grow flex flex-col">
+                <template x-if="cartCount > 0">
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-6 mb-8 border-b border-zinc-100 pb-8">
+                            <div class="w-20 h-24 bg-zinc-100 rounded overflow-hidden">
+                                <img :src="images[0]" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex-grow">
+                                <h4 class="font-medium text-lg">Petal Cork Diary</h4>
+                                <p class="text-sm text-zinc-400">$32.00</p>
+                                <div class="mt-4 flex items-center gap-4">
+                                    <button @click="cartCount--" class="w-8 h-8 rounded-full border border-zinc-200 flex items-center justify-center">-</button>
+                                    <span x-text="cartCount" class="font-bold text-sm"></span>
+                                    <button @click="cartCount++" class="w-8 h-8 rounded-full border border-zinc-200 flex items-center justify-center">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div class="mt-auto pt-8 border-t border-zinc-100">
+                    <div class="flex justify-between text-xl font-light mb-8">
+                        <span>Balance</span>
+                        <span x-text="'$' + (cartCount * 32).toFixed(2)"></span>
+                    </div>
+                    <button class="w-full bg-zinc-900 text-white py-5 rounded-full uppercase tracking-widest text-xs font-bold hover:bg-zinc-800 transition-colors">
+                        Complete Ritual
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white py-24 px-8 md:px-24 border-t border-zinc-100">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-16">
+            <div class="col-span-1 md:col-span-2">
+                <h3 class="text-2xl font-bold tracking-widest uppercase mb-8">Kokoro</h3>
+                <p class="text-zinc-400 max-w-sm leading-relaxed mb-12">
+                    Finding balance in the objects we touch. A study of nature, utility, and the space between.
+                </p>
+            </div>
+            <div>
+                <h4 class="text-[10px] uppercase tracking-[0.3em] font-bold mb-8 text-zinc-400">Shop</h4>
+                <ul class="space-y-4 text-sm font-medium">
+                    <li><a href="#" class="hover:text-zinc-400 transition-colors">Bamboo Series</a></li>
+                    <li><a href="#" class="hover:text-zinc-400 transition-colors">Cork Essentials</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-[10px] uppercase tracking-[0.3em] font-bold mb-8 text-zinc-400">Social</h4>
+                <ul class="space-y-4 text-sm font-medium">
+                    <li><a href="#" class="hover:text-zinc-400 transition-colors">Instagram</a></li>
+                    <li><a href="#" class="hover:text-zinc-400 transition-colors">Pinterest</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="mt-24 pt-12 border-t border-zinc-50 text-center md:text-left">
+            <span class="text-[10px] uppercase tracking-widest text-zinc-400">© 2024 Kokoro Essentials. Designed for Peace.</span>
+        </div>
+    </footer>
+
+    <script>
+        // Reveal elements on scroll
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 1s cubic-bezier(0.23, 1, 0.32, 1)';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

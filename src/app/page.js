@@ -47,7 +47,7 @@ export default function Home() {
             alt="Bamboo Bottle"
             className="w-full h-auto grayscale hover:grayscale-0 transition-all duration-1000 rounded-2xl shadow-2xl"
           />
-          <div className="absolute -bottom-6 -left-6 bg-white p-6 shadow-xl rounded-xl">
+          <div className="absolute -bottom-6 -left-6 bg-white p-6 shadow-xl rounded-xl animate-float">
             <span className="block text-[10px] uppercase tracking-widest text-zinc-400">Featured Item</span>
             <span className="text-sm font-medium">Bamboo Vessel 01</span>
           </div>
